@@ -1,0 +1,37 @@
+let activeTab = null;
+let startTime = null;
+const siteData = {};
+
+// Track tab changes
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  const tab = await chrome.tabs.get(activeInfo.tabId);
+  handleTabChange(tab);
+});
+
+// Track URL changes
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.active && changeInfo.url) {
+    handleTabChange(tab);
+  }
+});
+
+// Handle tab change logic
+function handleTabChange(tab) {
+  const now = Date.now();
+
+  // Save time spent on the previous site
+  if (activeTab && startTime) {
+    const timeSpent = Math.floor((now - startTime) / 1000);
+    siteData[activeTab] = (siteData[activeTab] || 0) + timeSpent;
+  }
+
+  // Update active tab and start time
+  activeTab = new URL(tab.url).hostname;
+  startTime = now;
+}
+
+// Save data to storage every minute
+setInterval(() => {
+  chrome.storage.local.set({ siteData });
+}, 60000);
+
